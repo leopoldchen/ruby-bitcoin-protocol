@@ -1,0 +1,141 @@
+Ruby & Bitcoin Protocol
+Ruby Thursday, 杭州
+20 Oct 2016
+Tags: bitcoin, cryptology
+
+吕国宁
+lgn21st@gmail.com
+http://lvguoning.com
+@lgn21st
+
+* 基础概念
+
+- Private Key
+- Public Key
+- Address
+- Transaction
+
+* 真•随机数
+
+- 256 bit (32字节) 的随机空间有多大?
+- 随机种子
+
+  /dev/urandom
+
+- 效率
+  math/rand
+  crypto/rand
+
+* 生成 Private Key
+
+- OpenSSL
+
+  $ openssl rand 32 -hex
+
+- Ruby
+
+    require 'securerandom'
+
+    # Generate a 256-bit (32 bytes) secure random number
+    SecureRandom.hex(32)
+
+
+* ECDSA 椭圆曲线加密算法
+- secp256k1 曲线
+
+.image images/ecdsa.png
+
+
+* 派生 Public Key
+
+    require 'openssl'
+
+    # Bitcoin uses the secp256k1 curve
+    curve = OpenSSL::PKey::EC.new('secp256k1')
+
+    # Now we generate the public and private key together
+    curve.generate_key
+
+    puts curve.private_key
+    puts curve.public_key
+
+* 摘要算法
+
+- RIPEMD-160
+- SHA256
+- Base58
+
+* RIPEMD-160
+
+    require 'digest'
+
+    def rmd160(hex)
+      Digest::RMD160.hexdigest([hex].pack("H*"))
+    end
+
+* SHA256
+
+    require 'digest'
+
+    def sha256(hex)
+      Digest::SHA256.hexdigest([hex].pack("H*"))
+    end
+
+* Base58
+
+    def int_to_base58(int_val, leading_zero_bytes=0)
+      alpha = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+      base58_val, base = '', alpha.size
+      while int_val > 0
+        int_val, remainder = int_val.divmod(base)
+        base58_val = alpha[remainder] + base58_val
+      end
+      base58_val
+    end
+
+    def encode_base58(hex)
+      leading_zero_bytes = (hex.match(/^([0]+)/) ? $1 : '').size / 2
+      ("1"*leading_zero_bytes) + int_to_base58( hex.to_i(16)  )
+    end
+
+* 生成 Address
+
+.image images/1.png _ 800
+
+* 用 Ruby 生成地址
+
+    def public_key_hash(hex)
+      rmd160(sha256(hex))
+    end
+
+    def checksum(hex)
+      sha256(sha256(hex))[0...8]
+    end
+
+    ADDRESS_VERSION = '00'
+    def generate_address(pub_key_hash)
+      pk = ADDRESS_VERSION + pub_key_hash
+      encode_base58(pub_key_hash + checksum(pub_key_hash))
+    end
+
+    pub_key_hex  = curve.public_key.to_bn.to_s(16)
+    pub_key_hash = public_key_hash(pub_key_hex)
+
+    generate_address(public_key_hash(pub_key_hex))
+
+* 创建交易
+
+- 让我们来尝试转一笔钱
+
+* 交易签名
+
+.image images/2.png _ 700
+
+* 签名验证
+
+.image images/3.png _ 700
+
+* Resources
+
+.link https://github.com/lian/bitcoin-ruby
+
