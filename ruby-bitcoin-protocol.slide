@@ -108,20 +108,17 @@ http://lvguoning.com
       rmd160(sha256(hex))
     end
 
-    def checksum(hex)
-      sha256(sha256(hex))[0...8]
+    def checksum(hash)
+      sha256(sha256(hash))[0...8]
     end
 
-    ADDRESS_VERSION = '00'
-    def generate_address(pub_key_hash)
-      pk = ADDRESS_VERSION + pub_key_hash
-      encode_base58(pub_key_hash + checksum(pub_key_hash))
+    def generate_address(hash)
+      version = '00'
+      pk = version + hash
+      encode_base58(pk + checksum(pk))
     end
 
-    pub_key_hex  = curve.public_key.to_bn.to_s(16)
-    pub_key_hash = public_key_hash(pub_key_hex)
-
-    generate_address(public_key_hash(pub_key_hex))
+    generate_address(public_key_hash(curve.public_key.to_bn.to_s(16)))
 
 * 创建交易
 
